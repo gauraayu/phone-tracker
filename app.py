@@ -1,41 +1,159 @@
-from flask import Flask, render_template, request, jsonify
-import folium
+from flask import Flask, request, jsonify, render_template, url_for, session, redirect
+import requests
 
 app = Flask(__name__)
+app.secret_key = "replace_with_a_random_secret"  # Needed for session storage
 
-# Store received location in memory (you can use DB instead)
-shared_locations = []
+# ===== CONFIG =====
+OWNER_KEY = "Aayu@123"  # Keep this secret
+FAST2SMS_API_KEY = "VGhWdnRCx6l7YUkZurKjsvN941LSMHezoE5Pfgy3JQFaBwp8mALdp24931xmji7Z6bPBcyYXSJWVrMnk"
+GOOGLE_MAPS_API_KEY = "AIzaSyAANsKxn6vtnwv6W6zpjIQRKk2FcpmKA4M"  # Replace with your actual key
 
+# ===== DATA STORAGE =====
+shared_locations = {}     # { phone: {"lat":..., "lng":...} }
+active_tracking = {}      # { phone: bool }
+
+# ===== FUNCTIONS =====
+def send_sms_via_fast2sms(phone, message):
+    """Send SMS using Fast2SMS API."""
+    url = "https://www.fast2sms.com/dev/bulk"
+    headers = {
+        "authorization": FAST2SMS_API_KEY,
+        "Content-Type": "application/json"
+    }
+    # Remove + sign and ensure string
+    phone_number = phone.replace("+", "").strip()
+    payload = {
+        "sender_id": "FSTSMS",
+        "message": message,
+        "language": "english",
+        "route": "t",       # transactional
+        "numbers": phone_number
+    }
+    response = requests.post(url, json=payload, headers=headers)
+    print("Fast2SMS API Response:", response.text)
+    return response.json()
+
+
+# ===== ROUTES =====
+
+# LOGIN PAGE
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        entered_key = request.form.get("owner_key")
+        if entered_key == OWNER_KEY:
+            session['owner_key'] = entered_key
+            return redirect("/")
+        else:
+            return render_template("login.html", error="Incorrect Owner Key!")
+    return render_template("login.html", error=None)
+
+# DASHBOARD
 @app.route("/")
-def index():
-    return render_template("index.html")  # Your existing tracker form
+def admin_dashboard():
+    if 'owner_key' not in session:
+        return redirect("/login")  # Ask for key first
 
-@app.route("/share")
-def share():
-    return render_template("share.html")  # Page for location sharing
+    locations = []
+    for phone, loc in shared_locations.items():
+        locations.append({
+            "phone": phone,
+            "lat": loc.get("lat"),
+            "lng": loc.get("lng"),
+            "active": bool(active_tracking.get(phone, False))
+        })
+    return render_template(
+        "index.html",
+        locations=locations,
+        admin_key=session['owner_key'],   # Use session key
+        google_maps_api_key=GOOGLE_MAPS_API_KEY
+    )
 
-@app.route("/receive_location", methods=["POST"])
-def receive_location():
-    data = request.json
-    name = data.get("name", "Unknown")
-    lat = data.get("lat")
-    lng = data.get("lng")
+# SEND LOCATION LINK
+@app.route("/send_link", methods=["POST"])
+def send_link():
+    if 'owner_key' not in session:
+        return "Unauthorized", 403
 
-    shared_locations.append({"name": name, "lat": lat, "lng": lng})
-    print(f"📍 Received from {name}: {lat}, {lng}")
+    phone_input = request.form.get("phone")
+    if not phone_input:
+        return "Missing phone number", 400
 
-    return jsonify({"status": "success", "message": "Location received"})
+    # Split by comma and clean spaces
+    phones = [p.strip() for p in phone_input.split(",") if p.strip()]
+    sent_links = []
 
-@app.route("/view_shared")
-def view_shared():
-    if not shared_locations:
-        return "No shared locations yet."
+    for phone in phones:
+        link = url_for("share_location", phone=phone, _external=True)
+        message_body = f"Hi! Please share your current location here: {link}"
 
-    # Show map with all shared locations
-    map_obj = folium.Map(location=[shared_locations[0]["lat"], shared_locations[0]["lng"]], zoom_start=10)
-    for loc in shared_locations:
-        folium.Marker([loc["lat"], loc["lng"]], popup=loc["name"]).add_to(map_obj)
-    return map_obj._repr_html_()
+        try:
+            result = send_sms_via_fast2sms(phone, message_body)
+            print(f"Fast2SMS response for {phone}:", result)
+        except Exception as e:
+            print(f"Error sending SMS to {phone}: {str(e)}")
+            continue
+
+        active_tracking[phone] = True
+        sent_links.append({"phone": phone, "link": link})
+
+    return render_template("result.html", sent_links=sent_links)
+
+# LOCATION SHARING PAGE
+@app.route("/share.html")
+def share_location():
+    phone = request.args.get("phone")
+    if not phone:
+        return "Missing phone number.", 400
+    if not active_tracking.get(phone, False):
+        return "Location sharing disabled for this number.", 403
+    return render_template("share.html", phone=phone)
+
+# SUBMIT LOCATION
+@app.route("/submit_location", methods=["POST"])
+def submit_location():
+    phone = request.form.get("phone")
+    lat = request.form.get("lat")
+    lng = request.form.get("lng")
+
+    if not (phone and lat and lng):
+        return "Missing data.", 400
+    if not active_tracking.get(phone, False):
+        return "Location sharing disabled.", 403
+
+    shared_locations[phone] = {"lat": lat, "lng": lng}
+    return render_template("view_shared.html", lat=lat, lng=lng)
+
+# STOP TRACKING
+@app.route("/stop_tracking", methods=["POST"])
+def stop_tracking():
+    if 'owner_key' not in session:
+        return "Unauthorized", 403
+
+    phone = request.form.get("phone")
+    if not phone:
+        return "Missing phone", 400
+
+    active_tracking[phone] = False
+    return f"Tracking stopped for {phone}.", 200
+
+# JSON LOCATIONS
+@app.route("/locations.json")
+def locations_json():
+    if 'owner_key' not in session:
+        return "Unauthorized", 403
+
+    payload = [
+        {
+            "phone": phone,
+            "lat": loc.get("lat"),
+            "lng": loc.get("lng"),
+            "active": active_tracking.get(phone, False)
+        }
+        for phone, loc in shared_locations.items()
+    ]
+    return jsonify(payload)
 
 if __name__ == "__main__":
     app.run(debug=True)

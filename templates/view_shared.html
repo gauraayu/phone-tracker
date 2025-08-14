@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>📍 Location Shared</h2>
+<p>Latitude: <b>{{ lat }}</b> <br> Longitude: <b>{{ lng }}</b></p>
+<p><a href="https://www.google.com/maps?q={{ lat }},{{ lng }}" target="_blank">View on Map</a></p>
+{% endblock %}

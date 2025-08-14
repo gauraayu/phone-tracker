@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>{{ title if title else "Location Tracker" }}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(135deg, #4f9cff, #1e3c72);
+    color: white;
+    margin: 0;
+}
+.container {
+    max-width: 900px;
+    margin: auto;
+    padding: 20px;
+}
+form {
+    background: rgba(255,255,255,0.15);
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 10px;
+}
+label {
+    display: block;
+    margin-top: 10px;
+}
+input, button {
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    border: none;
+    border-radius: 5px;
+}
+input {
+    background: white;
+    color: black;
+}
+button {
+    background: orange;
+    color: white;
+    cursor: pointer;
+}
+button:hover {
+    background: darkorange;
+}
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+th, td {
+    padding: 8px;
+    text-align: center;
+    background: rgba(255,255,255,0.1);
+}
+th {
+    background: rgba(255,255,255,0.3);
+}
+</style>
+</head>
+<body>
+<div class="container">
+{% block content %}{% endblock %}
+</div>
+</body>
+</html>
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_key }}&callback=initMap" async defer></script>
+{% block scripts %}{% endblock %}

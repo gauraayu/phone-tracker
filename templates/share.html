@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Share Your Location</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background: linear-gradient(120deg, #89f7fe, #66a6ff);
+        color: white;
+        text-align: center;
+        padding: 50px;
+    }
+    input, button {
+        padding: 10px;
+        font-size: 16px;
+        margin-top: 15px;
+        border-radius: 8px;
+        border: none;
+    }
+    button {
+        background: #28a745;
+        color: white;
+        cursor: pointer;
+    }
+    button:hover {
+        background: #218838;
+    }
+</style>
+</head>
+<body>
+    <h1>📍 Share Your Exact Location</h1>
+    <p>Enter your name and click the button below to share your location securely.</p>
+    <input type="text" id="name" placeholder="Your Name (optional)">
+    <br>
+    <button onclick="shareLocation()">📡 Share My Location</button>
+
+    <script>
+        function shareLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    function(position) {
+                        fetch('/receive_location', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                name: document.getElementById("name").value,
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude
+                            })
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            alert("✅ Location shared successfully!");
+                        });
+                    },
+                    function(error) {
+                        alert("❌ Location access denied.");
+                    }
+                );
+            } else {
+                alert("❌ Geolocation not supported.");
+            }
+        }
+    </script>
+</body>
+</html>

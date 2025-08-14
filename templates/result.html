@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Tracking Result</title>
+<style>
+    body {
+        font-family: 'Segoe UI', sans-serif;
+        background: #f4f4f4;
+        text-align: center;
+        padding: 20px;
+    }
+    .info {
+        background: white;
+        padding: 20px;
+        margin: 20px auto;
+        display: inline-block;
+        border-radius: 10px;
+        box-shadow: 0px 4px 15px rgba(0,0,0,0.2);
+        animation: fadeIn 1s ease-in-out;
+    }
+    #map {
+        margin: 20px auto;
+        width: 80%;
+        height: 500px;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0px 4px 20px rgba(0,0,0,0.3);
+        animation: fadeInUp 1.2s ease-in-out;
+    }
+    a {
+        display: inline-block;
+        margin-top: 15px;
+        text-decoration: none;
+        color: white;
+        background: #007BFF;
+        padding: 10px 20px;
+        border-radius: 5px;
+        transition: background 0.3s ease;
+    }
+    a:hover {
+        background: #0056b3;
+    }
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    @keyframes fadeInUp {
+        from { transform: translateY(30px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
+
+    /* Toast Notification Styles */
+    .toast {
+        position: fixed;
+        bottom: 20px;
+        right: -400px;
+        background: rgba(0,0,0,0.85);
+        color: white;
+        padding: 15px 25px;
+        border-radius: 8px;
+        font-size: 16px;
+        box-shadow: 0px 4px 10px rgba(0,0,0,0.3);
+        animation: slideIn 0.5s forwards, fadeOut 0.5s ease-in-out 4s forwards;
+        z-index: 9999;
+    }
+    @keyframes slideIn {
+        to { right: 20px; }
+    }
+    @keyframes fadeOut {
+        to { opacity: 0; transform: translateY(20px); }
+    }
+</style>
+</head>
+<body>
+    <h1>📍 Tracking Result</h1>
+    <div class="info">
+        <p><strong>Location:</strong> {{ location }}</p>
+        <p><strong>Service Provider:</strong> {{ provider }}</p>
+        <p><strong>Coordinates:</strong> {{ lat }}, {{ lng }}</p>
+    </div>
+    <div id="map">
+        {{ map_html|safe }}
+    </div>
+    <a href="/">🔙 Track Another Number</a>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        ✅ Location: {{ location }}<br>
+        📡 Provider: {{ provider }}<br>
+        📍 Coordinates: {{ lat }}, {{ lng }}
+    </div>
+
+<script>
+    // Automatically remove toast after animation
+    setTimeout(() => {
+        document.getElementById("toast").style.display = "none";
+    }, 5000);
+</script>
+</body>
+</html>

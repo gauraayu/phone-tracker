@@ -38,23 +38,19 @@ function clearMarkers() {
 }
 
 function loadLocations() {
-    fetch(`/locations.json`)
+    fetch(`/locations.json?key={{ admin_key }}`)
         .then(res => res.ok ? res.json() : Promise.reject(res.status))
         .then(data => {
-            updateTable(data);
             clearMarkers();
             const bounds = new google.maps.LatLngBounds();
-            document.getElementById("noLocationsMsg").style.display = data.length === 0 ? "block" : "none";
 
             data.forEach(item => {
                 if (item.lat && item.lng && item.active) {
                     const marker = new google.maps.Marker({
                         position: { lat: parseFloat(item.lat), lng: parseFloat(item.lng) },
                         map: map,
-                        title: `${item.phone}\nLat: ${item.lat}, Lng: ${item.lng}`
+                        title: item.phone
                     });
-                    const infoWindow = new google.maps.InfoWindow({ content: `<b>${item.phone}</b><br>Lat: ${item.lat}<br>Lng: ${item.lng}` });
-                    marker.addListener('click', () => infoWindow.open(map, marker));
                     markers.push(marker);
                     bounds.extend(marker.getPosition());
                 }
@@ -65,26 +61,6 @@ function loadLocations() {
         .catch(err => console.error("Error loading locations:", err));
 }
 
-function updateTable(data) {
-    const tbody = document.querySelector('#locationsTable tbody');
-    tbody.innerHTML = '';
-    data.forEach(item => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${item.phone}</td>
-            <td>${item.lat || '-'}</td>
-            <td>${item.lng || '-'}</td>
-            <td>${item.active ? 'Active' : 'Stopped'}</td>
-            <td>${item.active ? `
-                <form method="post" action="/stop_tracking" style="display:inline;">
-                    <input type="hidden" name="phone" value="${item.phone}">
-                    <button type="submit" style="background:#e74c3c; color:white; border:none; padding:5px 10px; cursor:pointer;">Stop</button>
-                </form>
-            ` : '-'}</td>
-        `;
-        tbody.appendChild(row);
-    });
-}
 </script>
 
 <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initMap"></script>

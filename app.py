@@ -141,9 +141,9 @@ def stop_tracking():
 # JSON LOCATIONS
 @app.route("/locations.json")
 def locations_json():
-    if 'owner_key' not in session:
+    key = request.args.get("key", "")
+    if key != OWNER_KEY:
         return "Unauthorized", 403
-
     payload = [
         {
             "phone": phone,

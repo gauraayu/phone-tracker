@@ -1,6 +1,31 @@
 {% extends "base.html" %}
+
 {% block content %}
 <h2>📍 Location Shared</h2>
 <p>Latitude: <b>{{ lat }}</b> <br> Longitude: <b>{{ lng }}</b></p>
-<p><a href="https://www.google.com/maps?q={{ lat }},{{ lng }}" target="_blank">View on Map</a></p>
+<p><a href="https://www.google.com/maps?q={{ lat }},{{ lng }}" target="_blank">View on Google Maps</a></p>
+
+<!-- Map Container -->
+<div id="map" style="height: 400px; width: 100%; margin-top: 20px;"></div>
+
+<!-- Google Maps JS -->
+<script>
+function initMap() {
+    const myLocation = { lat: parseFloat("{{ lat }}"), lng: parseFloat("{{ lng }}") };
+    const map = new google.maps.Map(document.getElementById("map"), {
+        zoom: 15,
+        center: myLocation
+    });
+
+    const marker = new google.maps.Marker({
+        position: myLocation,
+        map: map,
+        title: "Shared Location"
+    });
+}
+</script>
+
+<script async defer
+    src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&callback=initMap">
+</script>
 {% endblock %}
